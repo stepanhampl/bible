@@ -1,13 +1,19 @@
 FROM php:8.3-apache
 
-# Install system dependencies
+# Install system dependencies and ca-certificates
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
 
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Install PHP extensions needed for the app
+RUN docker-php-ext-install pdo pdo_mysql
+
+# Install Composer using a different method to avoid SSL issues
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+RUN chmod +x /usr/local/bin/composer
 
 
 # Set Apache document root in the default site config
@@ -25,19 +31,12 @@ RUN a2enmod rewrite
 
 
 # Ensure temp and cache directories exist and are writable by www-data
-RUN mkdir -p /var/www/html/temp/cache \
-    && chown -R www-data:www-data /var/www/html/temp \
-    && chmod -R 777 /var/www/html/temp \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R o+rX /var/www/html/www \
+RUN mkdir -p /var/www/html/temp/cache && \
+    chown -R www-data:www-data /var/www/html/temp && \
+    chmod -R 777 /var/www/html/temp
 
-# Install PHP dependencies (after all code is copied)
-RUN cd /var/www/html && composer install
-
-
-# Set permissions for all web files and ensure world-read/execute for www
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R o+rX /var/www/html/www
+# Set basic permissions for web files
+RUN chmod -R o+rX /var/www/html/www
 
 # Expose port 80
 EXPOSE 80
