@@ -1,0 +1,43 @@
+FROM php:8.3-apache
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+
+# Set Apache document root in the default site config
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/www|g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's|<Directory /var/www/html>|<Directory /var/www/html/www>|g' /etc/apache2/apache2.conf
+
+# Copy app source
+COPY . /var/www/html
+
+
+
+# Enable Apache mod_rewrite for .htaccess support
+RUN a2enmod rewrite
+
+
+
+# Ensure temp and cache directories exist and are writable by www-data
+RUN mkdir -p /var/www/html/temp/cache \
+    && chown -R www-data:www-data /var/www/html/temp \
+    && chmod -R 777 /var/www/html/temp \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R o+rX /var/www/html/www \
+
+# Install PHP dependencies (after all code is copied)
+RUN cd /var/www/html && composer install
+
+
+# Set permissions for all web files and ensure world-read/execute for www
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R o+rX /var/www/html/www
+
+# Expose port 80
+EXPOSE 80
