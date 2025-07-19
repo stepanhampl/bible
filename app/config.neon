@@ -1,15 +1,12 @@
 parameters:
 
 application:
-    name: BibleApp
-
-services:
-    - App\Presenters\*
-
-application:
     errorPresenter: Error
     mapping:
         *: App\Presenters\*Presenter
+
+services:
+    - App\Presenters\HomePresenter
 
 routing:
     debugger: true
