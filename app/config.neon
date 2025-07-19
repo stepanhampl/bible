@@ -7,6 +7,11 @@ application:
 
 services:
     - App\Presenters\HomePresenter
+    - App\Presenters\ErrorPresenter
+    router: 
+        factory: @routerFactory::createRouter()
+
+    routerFactory: App\RouterFactory
 
 routing:
-    debugger: true
+    debugger: false
